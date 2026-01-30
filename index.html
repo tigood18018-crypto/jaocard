@@ -146,16 +146,17 @@ async function downloadVCard() {
   const orgTitle = document.querySelector('.profile p').innerText;
   const phone = document.querySelector('a[href^="tel:"]').href.replace('tel:', '');
   const email = document.querySelector('a[href^="mailto:"]').href.replace('mailto:', '');
+  const photoUrl = document.querySelector('.profile img').src;
 
-  // USE HIDDEN CONTACT IMAGE
-  const photoUrl = document.getElementById('contactProfileImage').src;
-
+  // Name handling
   const nameParts = fullName.split(' ');
   const firstName = nameParts.slice(0, -1).join(' ');
   const lastName = nameParts.slice(-1).join('');
 
+  // Company + position
   const [company, position] = orgTitle.split('•').map(s => s.trim());
 
+  // Convert image to Base64
   const photoBase64 = await toBase64(photoUrl);
 
   const vCardData = `
@@ -167,28 +168,38 @@ ORG:${company}
 TITLE:${position}
 TEL;TYPE=CELL:${phone}
 EMAIL;TYPE=INTERNET:${email}
-PHOTO;ENCODING=BASE64;TYPE=JPEG:${photoBase64}
+PHOTO;ENCODING=b;TYPE=JPEG:${photoBase64}
 END:VCARD
 `.trim();
 
   const blob = new Blob([vCardData], { type: 'text/vcard;charset=utf-8' });
   const url = URL.createObjectURL(blob);
 
-  window.location.href = url;
+  // iOS-friendly trigger
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${firstName}-${lastName}.vcf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 
   setTimeout(() => URL.revokeObjectURL(url), 3000);
 }
 
+// Helper: convert image URL → Base64
 function toBase64(url) {
   return fetch(url)
     .then(res => res.blob())
-    .then(blob => new Promise(resolve => {
+    .then(blob => new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result.split(',')[1]);
+      reader.onloadend = () => {
+        resolve(reader.result.split(',')[1]);
+      };
       reader.readAsDataURL(blob);
     }));
 }
 </script>
+
 
 </body>
 </html>
